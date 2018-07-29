@@ -7,7 +7,7 @@ solidity： 开发语言
 */
 
 contract HelloWorld {
-    function sayHello() returns (string) {
+    function sayHello() public returns (string) {
         return ("hello world");
     }
 }
