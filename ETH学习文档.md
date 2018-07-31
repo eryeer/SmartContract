@@ -26,6 +26,21 @@
         - [5.3.4. transfer转账](#534-transfer转账)
         - [5.3.5. send转账](#535-send转账)
     - [5.4. string字符串](#54-string字符串)
+    - [5.5. 固定大小字节数组](#55-固定大小字节数组)
+        - [5.5.1. 操作运算符](#551-操作运算符)
+            - [5.5.1.1. 比较运算符](#5511-比较运算符)
+            - [5.5.1.2. 位运算符](#5512-位运算符)
+        - [5.5.2. 地址访问](#552-地址访问)
+        - [5.5.3. 长度不可变解析](#553-长度不可变解析)
+    - [5.6. 动态大小字节数组](#56-动态大小字节数组)
+        - [5.6.1. 常规字符串string转换bytes](#561-常规字符串string转换bytes)
+        - [5.6.2. 汉字字符串或特殊字符的字符串转换为bytes](#562-汉字字符串或特殊字符的字符串转换为bytes)
+            - [5.6.2.1. 特殊字符对应一个字节](#5621-特殊字符对应一个字节)
+            - [5.6.2.2. 中文字符串对应3个字节](#5622-中文字符串对应3个字节)
+        - [5.6.3. 创建字节数组](#563-创建字节数组)
+        - [5.6.4. 改变字节数组长度](#564-改变字节数组长度)
+        - [5.6.5. push方法的使用](#565-push方法的使用)
+        - [总结](#总结)
 
 <!-- /TOC -->
 
@@ -541,3 +556,185 @@ contract StringLiterals {
     }
 }
 ```
+## 5.5. 固定大小字节数组
+bytes1 只能存储一个字节，即一个字母或数字
+bytes2 只能存储两个字节
+......
+bytes32只能存储三十二个字节
+```
+pragma solidity ^0.4.4;
+
+contract FixBytes {
+  bytes1 b1 = 0x6c; //0110 1100
+  bytes2 b2 = 0x6c69;// 0110 1100 0110 1001
+  bytes9 b9 = 0x6c693c3d2f11934411;
+
+  function getByteLength() constant returns (uint) {
+    return b9.length;
+  }
+}
+
+```
+### 5.5.1. 操作运算符
+#### 5.5.1.1. 比较运算符
+<=, <, ==, !=, >=, >
+#### 5.5.1.2. 位运算符
+&, |, ^, ~, >>, << 
+### 5.5.2. 地址访问
+```
+pragma solidity ^0.4.4;
+
+contract FixBytes {
+ bytes9 b9 = 0x6c693c3d2f11934411; //0x6c 69 3c 3d 2f 11 93 44 11
+ function readIndex5Byte() constant returns (byte) {
+   return b9[5]; //0x11
+ }
+}
+```
+### 5.5.3. 长度不可变解析
+1. 长度不可变
+2. 内容不可修改
+```
+pragma solidity ^0.4.4;
+
+contract FixBytes {
+ bytes9 b9 = 0x6c693c3d2f11934411;
+ function setNameLength(uint length) {
+   //报错 长度不可修改
+   b9.length = length;
+ }
+ function setNameFirstByte(byte b) {
+   //报错 存储内容不可修改
+   b9[0] = b;
+ }
+}
+```
+## 5.6. 动态大小字节数组
+- string 是一个动态尺寸的UTF-8编码字符串，他是一个特殊的可变字节数组，string是引用类型，而非值类型
+- bytes 动态字节数组，引用类型。
+### 5.6.1. 常规字符串string转换bytes
+```
+pragma solidity ^0.4.4;
+
+contract dynamicBytes {
+  bytes9 public g = 0x6c693c3d2f11934411;
+  string public name = "liyuechun";
+  function gByteLength() constant returns (uint){
+    return g.length;
+  }
+
+  function nameBytes() constant returns (bytes){
+    return bytes(name);
+  }
+
+  function nameLength() constant returns (uint){
+    return bytes(name).length;
+  }
+  //通过索引去修改内容
+  function setNameFirstByteForL(bytes1 z){
+    bytes(name)[0] = z;
+  }
+}
+```
+### 5.6.2. 汉字字符串或特殊字符的字符串转换为bytes
+#### 5.6.2.1. 特殊字符对应一个字节
+```
+pragma solidity ^0.4.4;
+
+contract dynamicBytes {
+
+  string public name = "a!+&520";
+
+  function nameBytes() constant returns (bytes){
+    return bytes(name); //0x61212b26353230
+  }
+  function nameLength() constant returns (unit){
+    return bytes(name).length; //7
+  }
+}
+```
+#### 5.6.2.2. 中文字符串对应3个字节
+```
+pragma solidity ^0.4.4;
+
+contract dynamicBytes {
+
+  string public name = "黎越春";
+
+  function nameBytes() constant returns (bytes){
+    return bytes(name); 
+  }
+  function nameLength() constant returns (uint){
+    return bytes(name).length; //9
+  }
+}
+```
+### 5.6.3. 创建字节数组
+内容可变
+```
+contract dynamicBytes {
+  bytes public b = new bytes(5);
+
+  function bLength() constant returns (uint) {
+    return b.length;//5
+  }
+// input 3,0x6c 内容可变
+  function setIndexByByte(uint index,byte data){
+    b[index] = data;
+  }
+}
+```
+### 5.6.4. 改变字节数组长度
+长度可变,通过改变length值来设置
+```
+pragma solidity ^0.4.4;
+
+contract dynamicBytes {
+  bytes public b = new bytes(1);//0x00，括号中为长度
+
+  function bLength() constant returns (uint) {
+    return b.length;//1
+  }
+
+  //input 3
+  function setBLength(uint len) {
+    b.length = len; //b.length = 3
+  }
+  // input 0 即为清空
+  function clearBBytes(uint len){
+    b.length = len;
+  }
+
+  // 第二种清空方法
+  function clearBBytes2(){
+    delete b;
+  }
+}}
+```
+### 5.6.5. push方法的使用
+```
+pragma solidity ^0.4.4;
+
+contract dynamicBytes {
+  bytes public name = new bytes(2);//0x00，括号中为长度
+
+  function nameLength() constant public returns (uint) {
+    return name.length;
+  }
+
+  function setNameLength(uint len) public {
+    name.length = len;
+  }
+  //往字节数组尾部追加字节，字节数组长度加1
+  function pushAByte(byte b) public {
+    name.push(b);
+  }
+
+}
+```
+### 总结
+- 不可变字节数组
+如果清楚存储字节的大小，可以通过bytes1,bytes2,bytes3,...,bytes32来声明字节数组变量，不过不可变字节数组的字节数不可修改，字节数组长度不可修改。
+- 可变字节数组
+可以通过bytes name = new bytes(length) - length 为字节数组长度，来声明可变大小和可修改字节内容的可变字节数组。
+
