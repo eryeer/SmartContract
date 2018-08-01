@@ -844,4 +844,24 @@ contract fixBytes {
 ### 5.8.1. 创建固定大小字节数组、可变大小字节数组
 创建可变字节数组除了通过```bytes b = new bytes(len)```来创建外，也可以通过```byte[] b```来进行声明。
 
-创建固定大小字节数组可以通过```byte[len] b```来创建，不过这种创建方式生成的字节数组，<font color=red><b>长度不可变，但是内容可以修改</b></font>。
+创建固定大小字节数组可以通过```byte[len] b```来创建，不过这种创建方式生成的字节数组，<b>长度不可变，但是内容可以修改</b>。
+```
+pragma solidity ^0.4.4;
+contract fixBytes {
+  // 0x6c6979656368756e
+  bytes9 a = 0x6c6979656368756e;
+  byte[9] public aa = [byte(0x6c),0x69,0x79,0x65,0x63,0x68,0x75,0x6e];
+  byte[] public cc = new byte[](10);
+  bytes ccc = new bytes(10);
+  function setAAIndex0Byte()public {
+      aa[0] = 0x89;
+  }
+  function setCC() public returns (byte[]){
+      for(uint i = 0 ; i< a.length; i++){
+          cc.push(a[i]);
+      }
+      return cc;
+  }
+}
+
+```
