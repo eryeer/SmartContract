@@ -40,7 +40,14 @@
         - [5.6.3. 创建字节数组](#563-创建字节数组)
         - [5.6.4. 改变字节数组长度](#564-改变字节数组长度)
         - [5.6.5. push方法的使用](#565-push方法的使用)
-        - [总结](#总结)
+        - [5.6.6. 总结](#566-总结)
+    - [5.7. 动态大小字节数组、固定大小字节数组、string之间的转换关系](#57-动态大小字节数组固定大小字节数组string之间的转换关系)
+        - [5.7.1. 固定大小字节数组之间的转换](#571-固定大小字节数组之间的转换)
+        - [5.7.2. 固定大小字节数组转动态大小字节数组](#572-固定大小字节数组转动态大小字节数组)
+        - [5.7.3. 固定大小字节数组不能直接转换为string](#573-固定大小字节数组不能直接转换为string)
+        - [5.7.4. 动态大小字节数组转string](#574-动态大小字节数组转string)
+        - [5.7.5. 标准固定大小字节数组转string代码](#575-标准固定大小字节数组转string代码)
+    - [5.8. 数组Arrays](#58-数组arrays)
 
 <!-- /TOC -->
 
@@ -732,9 +739,106 @@ contract dynamicBytes {
 
 }
 ```
-### 总结
+### 5.6.6. 总结
 - 不可变字节数组
 如果清楚存储字节的大小，可以通过bytes1,bytes2,bytes3,...,bytes32来声明字节数组变量，不过不可变字节数组的字节数不可修改，字节数组长度不可修改。
 - 可变字节数组
 可以通过bytes name = new bytes(length) - length 为字节数组长度，来声明可变大小和可修改字节内容的可变字节数组。
+## 5.7. 动态大小字节数组、固定大小字节数组、string之间的转换关系
+### 5.7.1. 固定大小字节数组之间的转换
+- bytesi的变量长度由i来决定
+- 向下转换会将末位砍掉
+- 向上转换会在末位补齐
+```
+pragma solidity ^0.4.4;
+contract fixBytes {
+  // 0x6c6979656368756e
+
+  bytes9 public b = 0x6c697975656368756e;
+  
+  function b1_length() constant returns (uint){
+      return b.length; 
+  }
+  
+  function bToBytes2() constant returns(bytes2){
+      return bytes2(b);//0x6c69
+  }
+  function bToBytes32() constant returns(bytes32){
+      return bytes32(b);//0x6c697975656368756e0000000000000000000000000000000000000000000000
+  }
+   function bToByte() constant returns(byte){
+      return byte(b);//0x6c
+  }
+}
+```
+
+### 5.7.2. 固定大小字节数组转动态大小字节数组
+两者之间不能直接强转,可以创建可变字节数组，拷贝固定字节数组到动态数组中。
+```
+pragma solidity ^0.4.4;
+contract fixBytes {
+  // 0x6c6979656368756e
+
+  bytes9 public b = 0x6c697975656368756e;
+  
+  function zhuanhuan() constant returns (bytes memory b1){
+      b1 = new bytes(b.length);
+      for(uint i = 0;i<b.length;i++){
+          b1[i] = b[i];
+      }
+  }
+  
+}
+```
+### 5.7.3. 固定大小字节数组不能直接转换为string
+固定大小字节数组转string，需先转动态字节数组，再转string
+
+### 5.7.4. 动态大小字节数组转string
+string()直接强转
+```
+pragma solidity ^0.4.4;
+contract fixBytes {
+  // 0x6c6979656368756e
+  bytes9 names9 = 0x6c6979656368756e;
+  bytes name = new bytes(2);
+  bytes names = new bytes(9);
+  function fixBytes(){
+      name[0] = 0x6c;
+      name[0] = 0x69;
+      for(uint i = 0 ; i< names9.length;i++){
+          names[i] = names9[i];
+      }
+  }
+  
+  function nameToString() constant returns(string){
+      return string(names);
+  }
+  
+}
+```
+### 5.7.5. 标准固定大小字节数组转string代码
+```
+pragma solidity ^0.4.4;
+contract fixBytes {
+  // 0x6c6979656368756e
+  function bytes32ToString(bytes32 x) constant returns(string){
+      bytes memory bytesString = new bytes(32);
+      uint charCount = 0;
+      for(uint j=0;j<32;j++){
+          byte char = byte(bytes32(uint(x) <<  (8 * j)));
+          if(char != 0 ){
+              bytesString[charCount] = char;
+              charCount++;
+          }
+      }
+      bytes memory bytesStringTrimmed = new bytes(charCount);
+      for(j = 0;j<charCount;j++){
+          bytesStringTrimmed[j] = bytesString[j];
+      }
+      return string(bytesStringTrimmed);
+  }
+}
+```
+## 5.8. 数组Arrays
+
 
