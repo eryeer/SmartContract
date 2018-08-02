@@ -1,2 +1,2 @@
 # SmartContract
-ETHEREUM智能合约学习文档和practice code。
+ETHEREUM智能合约study note和practice code。

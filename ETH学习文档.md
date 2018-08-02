@@ -48,7 +48,16 @@
         - [5.7.4. 动态大小字节数组转string](#574-动态大小字节数组转string)
         - [5.7.5. 标准固定大小字节数组转string代码](#575-标准固定大小字节数组转string代码)
     - [5.8. 数组Arrays](#58-数组arrays)
-        - [5.8.1. 创建固定大小字节数组、可变大小字节数组](#581-创建固定大小字节数组可变大小字节数组)
+        - [5.8.1. 固定长度的数组](#581-固定长度的数组)
+            - [5.8.1.1. 声明和求数组长度](#5811-声明和求数组长度)
+            - [5.8.1.2. 固定长度数组的长度不可变，但是内容可变](#5812-固定长度数组的长度不可变但是内容可变)
+        - [5.8.2. 可变长度的数组](#582-可变长度的数组)
+        - [5.8.3. 创建固定大小字节数组、可变大小字节数组](#583-创建固定大小字节数组可变大小字节数组)
+        - [5.8.4. 二维数组](#584-二维数组)
+        - [5.8.5. 创建Memory Arrays](#585-创建memory-arrays)
+        - [5.8.6. 数组的字面量和内连数组inline](#586-数组的字面量和内连数组inline)
+    - [5.9. 枚举](#59-枚举)
+    - [5.10. 结构体](#510-结构体)
 
 <!-- /TOC -->
 
@@ -841,7 +850,64 @@ contract fixBytes {
 }
 ```
 ## 5.8. 数组Arrays
-### 5.8.1. 创建固定大小字节数组、可变大小字节数组
+
+### 5.8.1. 固定长度的数组
+#### 5.8.1.1. 声明和求数组长度
+```
+pragma solidity ^0.4.4;
+contract arrays {
+  uint[5] public T = [1,2,3,4,5]; 
+  
+  function numbers() constant public returns (uint){
+      uint num = 0;
+      for (uint i = 0; i< T.length;i++){
+          num = num + T[i];
+      }
+      return num;
+  }
+}
+```
+#### 5.8.1.2. 固定长度数组的长度不可变，但是内容可变
+```
+pragma solidity ^0.4.4;
+contract arrays {
+  uint[5] public T = [1,2,3,4,5]; 
+  function setTIndex0Value()public {
+      T[0] =10;
+  }
+}
+```
+### 5.8.2. 可变长度的数组
+这类数组长度和内容均可修改
+- 第一种声明
+```
+pragma solidity ^0.4.4;
+contract arrays {
+   uint[] T = [1,2,3,4,5];
+   function T_length() constant returns (uint){
+       return T.length;
+       
+   }
+   
+   function setTlen(uint len) {
+       T.length = len;
+   }
+}
+```
+- 第二种声明
+```
+pragma solidity ^0.4.4;
+contract arrays {
+   uint[] public T = new uint[](5);
+   function arrays(){
+       for(uint i = 0;i<T.length;i++){
+           T[i] = i+1;
+       }
+   }
+}
+```
+
+### 5.8.3. 创建固定大小字节数组、可变大小字节数组
 创建可变字节数组除了通过```bytes b = new bytes(len)```来创建外，也可以通过```byte[] b```来进行声明。
 
 创建固定大小字节数组可以通过```byte[len] b```来创建，不过这种创建方式生成的字节数组，<b>长度不可变，但是内容可以修改</b>。
@@ -864,4 +930,112 @@ contract fixBytes {
   }
 }
 
+```
+
+### 5.8.4. 二维数组
+```
+pragma solidity ^0.4.4;
+contract arrays {
+  uint [2][3] T = [[1,2],[3,4],[5,6]];
+  uint [2][] T1 = new uint[2][](5);//可变数组
+
+  function T_len() constant public returns(uint){
+      return T.length; //3
+  }
+  
+  function pushArrToT1(uint[2] _t){
+      T1.push(_t);
+  }
+}
+```
+### 5.8.5. 创建Memory Arrays
+函数体内创建的数组只能是memory类型,长度不可改变
+```
+pragma solidity ^0.4.4;
+contract arrays {
+  function f(uint len){
+      uint[] memory a = new uint[](7);
+      a[6] = 9;
+  }
+}
+```
+### 5.8.6. 数组的字面量和内连数组inline
+memory类型数组要进行强转类型才能作为参数调用
+```solidity
+pragma solidity ^0.4.4;
+contract arrays {
+  function f() public {
+      g([uint(1),2,3]);
+  }
+  // uint256
+  function g(uint[3] _data) public{
+      
+  }
+}
+```
+函数内固定长度的memory类型数组不可以赋值给可变memeory类型数组；全局的则可以
+
+**错误写法**
+```solidity
+pragma solidity ^0.4.4;
+contract arrays {
+  
+  //错误写法
+  function g() public{
+      uint[] memory x = [uint(1),3,4];
+  }
+
+}
+```
+## 5.9. 枚举
+实际上是有范围的自定义整型，超出范围会报错
+默认范围为uint8，超出会变成uint16，以此向上类推
+```solidity
+pragma solidity ^0.4.4;
+contract testEnum {
+  enum ActionChoices{GoLeft,GoRight,GoStraight,SitStill} //default ActionChoices as uint8, value as 0,1,2,3
+  ActionChoices _choice;
+  ActionChoices constant defaultChoice = ActionChoices.GoStraight;
+  
+  function setGoStraight(ActionChoices choice) public {
+      _choice = choice;
+  }
+  function getChoice() constant public returns(ActionChoices){
+      return _choice;
+  }
+  function getDefaultChoiceUint() pure public returns(uint){
+      return uint(defaultChoice); // uint256 2
+  }
+    function getDefaultChoice() pure public returns(ActionChoices){
+      return defaultChoice; //uint8 2
+  }
+}
+```
+## 5.10. 结构体
+```
+pragma solidity ^0.4.4;
+contract Students {
+    
+  struct Person{
+      uint age;
+      uint stuId;
+      string name;
+  }
+
+  Person [] persons = new Person[](5);
+}
+```
+- 初始化方法
+```
+pragma solidity ^0.4.4;
+contract Students {
+    
+  struct Person{
+      uint age;
+      uint stuId;
+      string name;
+  }
+  Person public _person1 = Person(15,101,"eryeer");//初始化方法1
+  Person public _person2 = Person({age:38,stuId:102,name:"zhaochen"});//初始化方法2
+}
 ```
