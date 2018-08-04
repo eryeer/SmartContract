@@ -58,6 +58,14 @@
         - [5.8.6. 数组的字面量和内连数组inline](#586-数组的字面量和内连数组inline)
     - [5.9. 枚举](#59-枚举)
     - [5.10. 结构体](#510-结构体)
+    - [5.11. 字典映射](#511-字典映射)
+    - [5.12. 综合案例1：运动员投资合约](#512-综合案例1运动员投资合约)
+    - [5.13. 单位和全局变量的使用](#513-单位和全局变量的使用)
+    - [5.14. 元组(Tuples)](#514-元组tuples)
+- [6. 使用truffle编写智能合约](#6-使用truffle编写智能合约)
+    - [6.1. 入门](#61-入门)
+    - [6.2. 书写简易代币合约](#62-书写简易代币合约)
+    - [6.3. 建立标准代币部落币"BLC"](#63-建立标准代币部落币blc)
 
 <!-- /TOC -->
 
@@ -395,7 +403,8 @@ contract TestVar {
 
 ## 5.3. 地址
  
- 地址长度20字节，一字节8位，一共160位。 可以用uint160声明地址。
+ - 地址长度20字节，一字节8位，一共160位。 可以用uint160声明地址。
+ - 输入地址值作为参数时要加""。
 
  - 转换uint160 和 address
  ```
@@ -426,24 +435,6 @@ contract Test {
   }
 }
  ```
-**Block and Transaction Properties**
-```
-block.blockhash(uint blockNumber) returns (bytes32): hash of the given block - only works for 256 most recent, excluding current, blocks - deprecated in version 0.4.22 and replaced by blockhash(uint blockNumber).
-block.coinbase (address): current block miner’s address
-block.difficulty (uint): current block difficulty
-block.gaslimit (uint): current block gaslimit
-block.number (uint): current block number
-block.timestamp (uint): current block timestamp as seconds since unix epoch
-gasleft() returns (uint256): remaining gas
-msg.data (bytes): complete calldata
-msg.gas (uint): remaining gas - deprecated in version 0.4.21 and to be replaced by gasleft()
-msg.sender (address): sender of the message (current call) //当前调用消息的钱包地址
-msg.sig (bytes4): first four bytes of the calldata (i.e. function identifier)
-msg.value (uint): number of wei sent with the message
-now (uint): current block timestamp (alias for block.timestamp)
-tx.gasprice (uint): gas price of the transaction
-tx.origin (address): sender of the transaction (full call chain)
-```
 
 ### 5.3.1. this的含义
 this 指的是什么？当前合约的地址值
@@ -1038,4 +1029,377 @@ contract Students {
   Person public _person1 = Person(15,101,"eryeer");//初始化方法1
   Person public _person2 = Person({age:38,stuId:102,name:"zhaochen"});//初始化方法2
 }
+```
+
+## 5.11. 字典映射
++ 找不到的key返回0
++ 字典无法作为返回值
+- 格式
+```
+mapping(_keyType => _valueType)
+```
+- 用法
+```
+pragma solidity ^0.4.4;
+contract MappingExample {
+    // 0xf8414e1c36D921E35298450FD9B94e682b4451BA
+    //0x8c9A06C8440048d001C978c8190748A6D73D0522
+    mapping(address => uint) balances;
+    function update(address a, uint newBalance) public {
+        balances[a] = newBalance;
+    }
+    //{0xf8414e1c36D921E35298450FD9B94e682b4451BA:100,0x8c9A06C8440048d001C978c8190748A6D73D0522:200}
+    function searchBalance(address a )constant public returns(uint){
+        return balances[a];
+    }
+}
+```
+## 5.12. 综合案例1：运动员投资合约
+```solidity
+pragma solidity ^0.4.4;
+contract CrowdFunding {
+    //0x14723a09acff6d2a60dcdf7aa4aff308fddc160c liuxiang
+    //0x4b0897b0513fdc7c541b6d9d7e929c4e5364d2db yaoming
+    //投资人
+    struct Funder {
+        address addr; //投资人地址
+        uint amount;  //投资额
+    }
+    //运动员
+    struct Campaign {
+        address beneficiary; //运动员地址
+        uint fundingGoal; //目标融资总额
+        uint numFunders; //投资人个数
+        uint amount;  //目前被投资金额
+        mapping(uint => Funder) funders;
+    }
+    //运动员数量
+    uint public numCampaigns;
+    mapping(uint=>Campaign) campaigns; 
+    
+    function newCampaign(address beneficiary, uint goal) public returns (uint campaignID){
+        campaignID = numCampaigns++;
+        campaigns[campaignID] = Campaign(beneficiary,goal,0,0);
+    }
+    function contribute(uint campaignID) public payable {
+        Campaign storage c = campaigns[campaignID];
+        c.funders[c.numFunders++] =Funder({addr:msg.sender,amount:msg.value});
+        c.amount += msg.value;
+        c.beneficiary.transfer(msg.value);
+    }
+    function checkGoalReached(uint campaignID) view public returns(bool reached){
+        Campaign storage c = campaigns[campaignID];
+        if(c.amount < c.fundingGoal){
+            return false;
+        }else {
+            return true;
+        }
+    }
+}
+```
+## 5.13. 单位和全局变量的使用
+- token单位
+一个证书后面可以跟一个单位，ether，finney，szabo，wei。
+    + 1 ether = 1000 finney
+    + 1 ether = 1000,000 szabo
+    + 1 ether = 10 ** 18 wei
+```solidity
+pragma solidity ^0.4.4;
+contract C {
+  uint a = 1 ether;
+  uint b = 10 ** 18 wei;
+  uint c = 1000 finney;
+  uint d = 1000000 szabo;
+  function isTrueAEqualToB() view public returns(bool){
+      return a == b; //true
+  }
+    function isTrueAEqualToC() view public returns(bool){
+      return a == c; //true
+  }
+    function isTrueAEqualToD() view public returns(bool){
+      return a == d; //true
+  }
+}
+```
+
+- 时间单位
+默认单位 seconds；总共有seconds minutes hours days weeks years
+```
+pragma solidity ^0.4.4;
+contract C {
+  function test1() constant public returns(bool){
+      return 1 == 1 seconds;
+  }
+  
+    function test2() constant public returns(bool){
+      return 60 seconds == 1 minutes;
+  }
+}
+```
+
+- 区块和交易属性
+```
+block.blockhash(uint blockNumber) returns (bytes32): hash of the givenblock - only works for 256 most recent, excluding current, blocks - deprecated in version 0.4.22 and replaced by blockhash(uint blockNumber). 某个区块链的hash
+block.coinbase (address): current block miner’s address 当前区块的挖矿地址
+block.difficulty (uint): current block difficulty 当前区块难度
+block.gaslimit (uint): current block gaslimit
+block.number (uint): current block number
+block.timestamp (uint): current block timestamp as seconds since unix epoch
+gasleft() returns (uint256): remaining gas
+msg.data (bytes): complete calldata
+msg.gas (uint): remaining gas - deprecated in version 0.4.21 and to be replaced by gasleft()剩余gas
+msg.sender (address): sender of the message (current call) //当前调用消息的钱包地址
+msg.sig (bytes4): first four bytes of the calldata (i.e. function identifier)方法ID
+msg.value (uint): number of wei sent with the message
+now (uint): current block timestamp (alias for block.timestamp)
+tx.gasprice (uint): gas price of the transaction交易的Gas单价
+tx.origin (address): sender of the transaction (full call chain)
+```
+- 错误处理
+    + assert(bool condition) : 不满足条件，将抛出异常
+    + require(bool condition) : 不满足条件，将抛出异常
+    + revert() 抛出异常
+```
+    if(msg.sender != owner) {revert();}
+    assert(msg.sender == owner);
+    require(msg.sender == owner);
+```
+
+## 5.14. 元组(Tuples)
+元组中可以保存不同数据类型，同时返回多个值。
+```
+pragma solidity ^0.4.4;
+contract C {
+  mapping(uint => string) students;
+  function C(){
+      students[0] = "eryeer";
+      students[1] = "zhaochen";
+  }
+  
+  function studentsNames() constant returns (string name0, string name1, uint i) {
+      name0 = students[0];
+      name1 = students[1];
+      i = 3;
+  }
+  
+  //等价于
+  function studentsNames2() constant returns (string name0, string name1, uint i) {
+      name0 = students[0];
+      name1 = students[1];
+      return (name0,name1,3);
+  }
+}
+```
+- 元组的使用
+```
+pragma solidity ^0.4.4;
+contract C {
+    
+  uint[] data = new uint[](5);    
+  function f() constant returns (uint, bool, uint) {
+      return (7,true,2);
+  }
+  
+  function g1() constant returns(uint,bool,uint){
+      var (x,b,y) = f();
+      return (x,b,y);
+  }
+  
+  function g2() constant returns(uint,uint){
+      var (x,b,y) =f();
+      return (x,y);  
+  }
+  
+  function g3() constant returns(uint,uint){
+      var (x,b,y) =f();
+      (x,y) =(2,7);
+      (x,y) = (y,x);
+      return (x,y);
+  }
+  
+  function g4() constant returns(uint[]){
+      (data.length,) = f();
+      return data;
+  }
+
+  function g5() constant  returns(uint[]){
+      (,data[3]) =f();
+      return data;
+  }
+
+  function g6() constant returns(uint){
+      var(x,) =(1,);
+      return x;
+  }
+}
+```
+# 6. 使用truffle编写智能合约
+## 6.1. 入门
+- 完整视频
+https://v.qq.com/x/page/h0552ba9k8h.html
+- 安装truffle
+```
+npm install -g truffle
+```
+- 创建
+```
+truffle init
+```
+- 打开编译器
+```
+truffle develop
+```
+- demo代码
+```
+pragma solidity ^0.4.4;
+contract HelloWorld {
+  function test() pure public returns (string) {
+    return "HelloWorld";
+  }
+
+  function test1() public returns (string) {
+    return "World Hello";
+  }
+
+  function echo(string s) public returns (string){
+    return s;
+  }
+}
+```
+
+- 在编译器中输入```compile```开始编译
+- 在编译器中输入```migrate```开始部署（重新部署需要输入```migrate --reset```）
+```
+let contract = HelloWorld.deployed().then(instance => contract = instance); //获取合约实例
+contract.test() //调用合约test方法(有pure关键字的function)
+contract.test1.call() // 调用test1方法(没有pure关键字的function)
+contract.echo.call("eryeer")
+```
+## 6.2. 书写简易代币合约
+- 合约
+```
+pragma solidity ^0.4.4;
+contract EncryptedToken {
+   uint256 INITIAL_SUPPLY = 666666;
+   mapping (address => uint256) balances;
+
+   constructor() public {
+     balances[msg.sender] = INITIAL_SUPPLY;
+   }
+
+   function transfer(address _to, uint256 _amount) public {
+     assert(balances[msg.sender] >= _amount);
+     balances[msg.sender] -= _amount;
+     balances[_to] += _amount;
+   }
+
+   function balanceOf(address _owner) constant public returns (uint256){
+     return balances[_owner];
+   }
+}
+
+```
+- truffle develop 指令
+```
+truffle(develop)> contract.balanceOf("0x627306090abab3a6e1400e9345bc60c78a8bef57");
+BigNumber { s: 1, e: 5, c: [ 666666 ] }
+truffle(develop)> contract.transfer("0xf17f52151ebef6c7334fad080c5704d77216b732",6000);
+{ tx:
+   '0xd8acfb7b462c2d916864329cb30e9f78588a50d144c740babd1f4069436e8b08',
+  receipt:
+   { transactionHash:
+      '0xd8acfb7b462c2d916864329cb30e9f78588a50d144c740babd1f4069436e8b08',
+     transactionIndex: 0,
+     blockHash:
+      '0x4b71a954be7373d86081b9fd8008c27f21228644b8d39ba13164aba19204d94b',
+     blockNumber: 5,
+     gasUsed: 49150,
+     cumulativeGasUsed: 49150,
+     contractAddress: null,
+     logs: [],
+     status: '0x01',
+     logsBloom:
+      '0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000' },
+  logs: [] }
+truffle(develop)> contract.balanceOf("0x627306090abab3a6e1400e9345bc60c78a8bef57");
+BigNumber { s: 1, e: 5, c: [ 660666 ] }
+truffle(develop)> contract.balanceOf.call("0xf17f52151ebef6c7334fad080c5704d77216b732");
+BigNumber { s: 1, e: 3, c: [ 6000 ] }
+```
+
+## 6.3. 建立标准代币部落币"BLC"
+建立文件夹
+```
+mkdir BLC
+npm install #生成package.json
+truffle install #可能会报错，需要将package.json移出文件夹
+```
+安装OpenZeppelin简化加密钱包开发过程。OpenZeppelin是一套能够给我们方便提供编写加密合约的函数库，同时里面也提供了兼容ERC20的智能合约。
+- 安装
+```
+cd BLC
+npm install zeppelin-solidity
+```
+
+- 代码
+```
+pragma solidity ^0.4.4;
+import "../node_modules/zeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
+
+contract BloggerCoin is StandardToken {
+  string public name = "BloggerCoin";
+  string public symbol = "BLC";
+  uint8 public decimals = 4; //决定小数点后多少位
+  uint256 public INITIAL_SUPPLY = 666666;
+  constructor() public {
+    totalSupply_ = INITIAL_SUPPLY;
+    balances[msg.sender] = INITIAL_SUPPLY;
+  }
+}
+```
+- truffle develop 指令
+```
+truffle(develop)> contract.name.call()
+'BloggerCoin'
+truffle(develop)> contract.symbol.call()
+'BLC'
+truffle(develop)> contract.decimals.call()
+BigNumber { s: 1, e: 0, c: [ 4 ] }
+truffle(develop)> contract.balanceOf("0x627306090abab3a6e1400e9345bc60c78a8bef57")
+BigNumber { s: 1, e: 5, c: [ 666666 ] }
+truffle(develop)> contract.balanceOf("0xf17f52151ebef6c7334fad080c5704d77216b732")
+BigNumber { s: 1, e: 0, c: [ 0 ] }
+truffle(develop)> contract.transfer("0xf17f52151ebef6c7334fad080c5704d77216b732",6666)
+{ tx:
+   '0x729aec4414f4f90e021b967d30e76d55496c5f9a851f10772296ac472c90e462',
+  receipt:
+   { transactionHash:
+      '0x729aec4414f4f90e021b967d30e76d55496c5f9a851f10772296ac472c90e462',
+     transactionIndex: 0,
+     blockHash:
+      '0x92540886de725b9af13a3dab534cb7e0e6bb406d8ef1af0aa0bd810941f3c7db',
+     blockNumber: 5,
+     gasUsed: 51633,
+     cumulativeGasUsed: 51633,
+     contractAddress: null,
+     logs: [ [Object] ],
+     status: '0x01',
+     logsBloom:
+      '0x00000000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000010000008000000000000000000010000000080000000000000000000000000000000000000000000000000000000000000000010000000000000000000010000000000000000000000000000000000000000010000000002000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000000010000000000000' },
+  logs:
+   [ { logIndex: 0,
+       transactionIndex: 0,
+       transactionHash:
+        '0x729aec4414f4f90e021b967d30e76d55496c5f9a851f10772296ac472c90e462',
+       blockHash:
+        '0x92540886de725b9af13a3dab534cb7e0e6bb406d8ef1af0aa0bd810941f3c7db',
+       blockNumber: 5,
+       address: '0x345ca3e014aaf5dca488057592ee47305d9b3e10',
+       type: 'mined',
+       event: 'Transfer',
+       args: [Object] } ] }
+truffle(develop)> contract.balanceOf("0xf17f52151ebef6c7334fad080c5704d77216b732")
+BigNumber { s: 1, e: 3, c: [ 6666 ] }
+truffle(develop)> contract.balanceOf("0x627306090abab3a6e1400e9345bc60c78a8bef57")
+BigNumber { s: 1, e: 5, c: [ 660000 ] }
 ```
