@@ -1,0 +1,5 @@
+eth.getBlockNumber
+admin.peers
+personal.listAccounts
+web3.net.peerCount
+net.peerCount

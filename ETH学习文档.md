@@ -66,6 +66,11 @@
     - [6.1. 入门](#61-入门)
     - [6.2. 书写简易代币合约](#62-书写简易代币合约)
     - [6.3. 建立标准代币部落币"BLC"](#63-建立标准代币部落币blc)
+- [7. 部署私链](#7-部署私链)
+    - [7.1. 软件安装](#71-软件安装)
+    - [7.2. 部署私链单节点](#72-部署私链单节点)
+    - [7.3. 部署合约](#73-部署合约)
+    - [7.4. 多节点部署](#74-多节点部署)
 
 <!-- /TOC -->
 
@@ -1402,4 +1407,369 @@ truffle(develop)> contract.balanceOf("0xf17f52151ebef6c7334fad080c5704d77216b732
 BigNumber { s: 1, e: 3, c: [ 6666 ] }
 truffle(develop)> contract.balanceOf("0x627306090abab3a6e1400e9345bc60c78a8bef57")
 BigNumber { s: 1, e: 5, c: [ 660000 ] }
+```
+# 7. 部署私链
+## 7.1. 软件安装
+- 官方指导
+https://github.com/ethereum/go-ethereum/wiki
+安装brew（MACOS）
+安装golang编译器
+```
+brew install go
+```
+安装geth
+下载source code（tar.gz）
+```
+cd go-ehtereum-1.5.9
+make geth
+```
+安装solidity
+```
+brew install solidity
+```
+## 7.2. 部署私链单节点
+- 新建文件夹privateDemo并进入
+- 编辑文件genesis.json
+```
+{
+   "config": {
+        "chainId": 15,
+        "homesteadBlock": 0,
+        "eip155Block": 0,
+        "eip158Block": 0
+    },
+    "coinbase" : "0x0000000000000000000000000000000000000000",
+    "difficulty" : "0x40000",
+    "extraData" : "",
+    "gasLimit" : "0xffffffff",
+    "nonce" : "0x0000000000000042",
+    "mixhash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "parentHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "timestamp" : "0x00",
+    "alloc": { }
+
+}
+```
+<b>chainID(私链id主链为1),config,difficulty,gasLimit,alloc都是必须的</b>
+- 注：如果设置了初始账号如下
+```
+"alloc": {
+              "dbdbdb2cbd23b783741e8d7fcf51e459b497e4a6":
+              {
+                  "balance":"300000"
+              },
+              "d7cc42b9880030e3c143a86593d536f50ef7c929":
+              {
+                  "balance":"400000"
+              }
+            
+       }
+```
+需要设置etherbase,之后挖矿的gas就会进入这个账号
+```
+miner.setEtherbase("d7cc42b9880030e3c143a86593d536f50ef7c929");
+```
+- 初始化genesis.json
+```
+geth --datadir data1 init genesis.json
+```
+- 启动私链
+```
+geth --datadir data1 --networkid 314590 --ipcdisable --port 61910  --rpcport 8200 console
+```
+- 查看首个节点信息
+```
+> admin.nodeInfo.enode
+"enode://2efbb4aac545b0c79dc486bc2af9cb19d3e0b4a6a0df9d72abdb1b95fd792d74e98acc3181cf7b92bde7571fd98e011844805c9d3503faa15ea720d4d6771b94@10.72.6.145:61910"
+```
+- 查看账户
+```
+personal.listAccounts
+```
+- 创建新账户
+```
+personal.newAccount("密码") //如personal.newAccount("eryeer")
+```
+- 查看账户余额
+```
+ eth.getBalance("0xf1d126385c8eb3f74249c22fbfe2c9302ebd7982")
+```
+- 解锁账户
+```
+personal.unlockAccount(peronsal.listAccounts[0])// 或者里面直接填写地址值
+```
+- 开始挖矿
+```
+miner.start()
+```
+- 结束挖矿
+```
+miner.stop()
+```
+- 转账
+```
+amount = web3.toWei(5,'ether')
+eth.sendTransaction({from:personal.listAccounts[0],to:personal.listAccounts[1],value:amount})
+```
+- 查看交易池
+```
+> txpool.status
+{
+  pending: 0,
+  queued: 0
+}
+```
+- 查看pending数据
+```
+> eth.getBlock("pending",true)
+{
+  difficulty: 2,
+  extraData: "0xda8301080d846765746888676f312e31302e338777696e646f777300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+  gasLimit: 6270953,
+  gasUsed: 21000,
+  hash: null,
+  logsBloom: "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+  miner: null,
+  mixHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
+  nonce: null,
+  number: 2,
+  parentHash: "0x01240347fbcacb8943ed7fce6af94613fbd6d1d8c7226c6fa832e901d1c46c1a",
+  receiptsRoot: "0x056b23fbba480696b65fe5a59b8f2148a1299103c4f57df839233af2cf4ca2d2",
+  sha3Uncles: "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+  size: 717,
+  stateRoot: "0xc4b0a4d8b6d6a8519cdaeb1a4cdd60849899bb3a912145faa6072cf8e008ef3a",
+  timestamp: 1533472711,
+  totalDifficulty: 0,
+  transactions: [{
+      blockHash: "0x7fbf6244b996ac1b16daf6c1a10b1201f9cd164a9809f0907b79c6252ef47cd3",
+      blockNumber: 2,
+      from: "0xf1d126385c8eb3f74249c22fbfe2c9302ebd7982",
+      gas: 90000,
+      gasPrice: 1,
+      hash: "0x48ade838f40e959c5e67d41d625aa281ec50dcfa8ceeeb90daabef99608fdba5",
+      input: "0x",
+      nonce: 1,
+      r: "0x699060d5c68aa8fdcbf0d1450cade00d40e007778150dd147b92a4490e0e611d",
+      s: "0x2d7e27329b0469cce872f3f5c06c6288bdd158ca264c776d86789b9ca74013e9",
+      to: "0x9c9ab08b08713bf1402689de7a053a5204a5d174",
+      transactionIndex: 0,
+      v: "0xa96",
+      value: 5000000000000000000
+  }],
+  transactionsRoot: "0xb90fff27c4bea583ee104656d60189f15cdb5d199ea6b81e2f19af1901a784bc",
+  uncles: []
+}
+```
+- 通过区块号查看区块
+```
+> eth.getBlock(2) //通过区块号查看区块
+{
+  difficulty: 2,
+  extraData: "0xda8301080d846765746888676f312e31302e338777696e646f77730000000000b0acd15f6fb6bc2523cfb4a68ed56d972b868a339bcb8a153b4b3c3e8f2c6d537246d3b39eda03817efa8138b53a915575c90fd964e467d9352484905722a95001",
+  gasLimit: 6270953,
+  gasUsed: 21000,
+  hash: "0x6090421d57c4bb92209efda0e05a823c67aa40c75ab406cfaf9521cb950667c6",
+  logsBloom: "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+  miner: "0x0000000000000000000000000000000000000000",
+  mixHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
+  nonce: "0x0000000000000000",
+  number: 2,
+  parentHash: "0x01240347fbcacb8943ed7fce6af94613fbd6d1d8c7226c6fa832e901d1c46c1a",
+  receiptsRoot: "0x056b23fbba480696b65fe5a59b8f2148a1299103c4f57df839233af2cf4ca2d2",
+  sha3Uncles: "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+  size: 717,
+  stateRoot: "0x296802efd72aafc5cd03acdf47b09553707c7246ee0cf51a7fa1f065cfbdfba8",
+  timestamp: 1533473791,
+  totalDifficulty: 5,
+  transactions: ["0x48ade838f40e959c5e67d41d625aa281ec50dcfa8ceeeb90daabef99608fdba5"],
+  transactionsRoot: "0xb90fff27c4bea583ee104656d60189f15cdb5d199ea6b81e2f19af1901a784bc",
+  uncles: []
+}
+```
+- 查看区块高度
+```
+> eth.blockNumber
+2
+```
+- 查看交易
+```
+> eth.getTransaction("0x48ade838f40e959c5e67d41d625aa281ec50dcfa8ceeeb90daabef99608fdba5")
+{
+  blockHash: "0x6090421d57c4bb92209efda0e05a823c67aa40c75ab406cfaf9521cb950667c6",
+  blockNumber: 2,
+  from: "0xf1d126385c8eb3f74249c22fbfe2c9302ebd7982",
+  gas: 90000,
+  gasPrice: 1,
+  hash: "0x48ade838f40e959c5e67d41d625aa281ec50dcfa8ceeeb90daabef99608fdba5",
+  input: "0x",
+  nonce: 1,
+  r: "0x699060d5c68aa8fdcbf0d1450cade00d40e007778150dd147b92a4490e0e611d",
+  s: "0x2d7e27329b0469cce872f3f5c06c6288bdd158ca264c776d86789b9ca74013e9",
+  to: "0x9c9ab08b08713bf1402689de7a053a5204a5d174",
+  transactionIndex: 0,
+  v: "0xa96",
+  value: 5000000000000000000
+}
+```
+
+## 7.3. 部署合约
+- 准备test.sol放于privateDemo文件夹下
+
+合约内容
+```solidity
+pragma solidity ^0.4.4;
+contract test {
+    function multiply(uint a) pure public returns (uint d) {
+        return a * 7;
+    }
+}
+```
+
+在目录privateDemo下执行
+```
+npm install -g solc
+```
+- 查看版本
+```
+> solcjs --version
+0.4.24+commit.e67f0147.Emscripten.clang
+```
+- 编译获取字节码
+```
+solcjs --bin test.sol
+```
+同级目录生成
+test_sol_test.bin
+- 获取abi json
+```
+solcjs --abi test.sol
+```
+同级目录生成
+test_sol_test.abi
+- 在geth console中操作
+```
+# 拷贝test_sol_test.bin中的字节码，开头添加0x
+> var bin = "0x608060405234801561001057600080fd5b5060bb8061001f6000396000f300608060405260043610603f576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff168063c6888fa1146044575b600080fd5b348015604f57600080fd5b50606c600480360381019080803590602001909291905050506082565b6040518082815260200191505060405180910390f35b60006007820290509190505600a165627a7a7230582009dd925b52db2f972b61d39f9347a16c962b4b42896f44a51a82e640e49211bc0029"
+undefined
+# 拷贝test_sol_test.abi中的json
+> var abi = [{"constant":true,"inputs":[{"name":"a","type":"uint256"}],"name":"multiply","outputs":[{"name":"d","type":"uint256"}],"payable":false,"stateMutability":"pure","type":"function"}]
+undefined
+#解锁账户1
+> eth.getBalance(personal.listAccounts[1])
+10000000000000000000
+> personal.unlockAccount(personal.listAccounts[1])
+
+Unlock account 0x9c9ab08b08713bf1402689de7a053a5204a5d174
+Passphrase:
+true
+#预估gas消费量
+> web3.eth.estimateGas({data:bin})
+102751
+#新建合约对象
+> var myContract = eth.contract(abi);
+undefined
+#部署合约，gas值不要低于评估值
+> var contract = myContract.new({from:personal.listAccounts[1],data:bin,gas:150000})
+INFO [08-05|21:34:59.328] Submitted contract creation              fullhash=0x4244b17199b588c717c5847a9299f024e65a61ac60cdc33d94f910d0494cb19c contract=0x939eC7D882d3174A6590599804206eB684D36705
+undefined
+
+> contract
+{
+  abi: [{
+      constant: true,
+      inputs: [{...}],
+      name: "multiply",
+      outputs: [{...}],
+      payable: false,
+      stateMutability: "pure",
+      type: "function"
+  }],
+  address: undefined,
+  transactionHash: "0x4244b17199b588c717c5847a9299f024e65a61ac60cdc33d94f910d0494cb19c"
+}
+> txpool.status
+{
+  pending: 1,
+  queued: 0
+}
+# 开始挖矿
+> miner.start()
+INFO [08-05|21:35:44.827] Transaction pool price threshold updated price=1
+nuIlNlF
+O>  [08-05|21:35:44.838] Starting mining operation
+INFO [08-05|21:35:44.843] Commit new mining work                   number=3 txs=1 uncles=0 elapsed=0s
+INFO [08-05|21:35:44.847] Successfully sealed new block            number=3 hash=5b46bb…f1197d
+INFO [08-05|21:35:44.854] 🔨 mined potential block                  number=3 hash=5b46bb…f1197d
+INFO [08-05|21:35:44.854] Commit new mining work                   number=4 txs=0 uncles=0 elapsed=0s
+WARN [08-05|21:35:44.865] Block sealing failed                     err="waiting for transactions"
+> miner.stop()
+true
+> txpool.status
+{
+  pending: 0,
+  queued: 0
+}
+> contract
+{
+  abi: [{
+      constant: true,
+      inputs: [{...}],
+      name: "multiply",
+      outputs: [{...}],
+      payable: false,
+      stateMutability: "pure",
+      type: "function"
+  }],
+  address: "0x939ec7d882d3174a6590599804206eb684d36705",
+  transactionHash: "0x4244b17199b588c717c5847a9299f024e65a61ac60cdc33d94f910d0494cb19c",
+  allEvents: function(),
+  multiply: function()
+}
+> eth.getCode(contract.address)
+"0x608060405260043610603f576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff168063c6888fa1146044575b600080fd5b348015604f57600080fd5b50606c600480360381019080803590602001909291905050506082565b6040518082815260200191505060405180910390f35b60006007820290509190505600a165627a7a7230582009dd925b52db2f972b61d39f9347a16c962b4b42896f44a51a82e640e49211bc0029"
+# 测试合约方法
+> contract.multiply(6)
+42
+>
+```
+## 7.4. 多节点部署
+部署第二个节点
+- 初始化genesis.json
+```
+geth --datadir data2 init genesis.json
+```
+- 启动节点
+```
+geth --datadir data2 --networkid 314590 --ipcdisable --port 61911 --rpcport 8101 --bootnodes "enode://2efbb4aac545b0c79dc486bc2af9cb19
+d3e0b4a6a0df9d72abdb1b95fd792d74e98acc3181cf7b92bde7571fd98e011844805c9d3503faa15ea720d4d6771b94@10.72.6.145:61910" console
+```
+--bootndoes 是设置当前节点启动后,直接通过设置--bootndoes 的值来链接第一个节点, --bootnoedes 的值可以通过在第一个节点的命令行中,输入:admin.nodeInfo.enode命令打印出来.
+也可以不设置 --bootnodes, 直接启动,启动后进入命令行, 通过命令admin.addPeer(enodeUrlOfFirst Instance)把它作为一个peer添加进来.
+```
+admin.addPeer("enode://a1e18dd40fbce856d84b8c6872d4158ab152812a081d1608643fd8a9c7d650ad161b5ef0b0a2a94357d2d6f3a044b380445f9033550233f8ded232eabd24e29a@ip_address:30303")
+```
+查看信息
+```
+> net.peerCount
+1
+> admin.peers
+[{
+    caps: ["eth/63"],
+    id: "07fa266c6c5c22a878630faf5e036c791d4875ac5246e20585834073c28830622802fcb2bdf4c03515035a57b88a71dbe7c441563ae5aebc504468a0f2bd7f5d",
+    name: "Geth/v1.8.13-stable-225171a4/windows-amd64/go1.10.3",
+    network: {
+      inbound: true,
+      localAddress: "192.168.1.105:61910",
+      remoteAddress: "10.72.6.145:63554",
+      static: false,
+      trusted: false
+    },
+    protocols: {
+      eth: {
+        difficulty: 9573858,
+        head: "0x295b7421534163cbe7ba94c05b5aa3a4ac59747555f41ff59b73657ac8f9402e",
+        version: 63
+      }
+    }
+}]
 ```
