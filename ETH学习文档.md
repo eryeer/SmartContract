@@ -71,6 +71,10 @@
     - [7.2. 部署私链单节点](#72-部署私链单节点)
     - [7.3. 部署合约](#73-部署合约)
     - [7.4. 多节点部署](#74-多节点部署)
+- [8. 基于Parity搭建联盟链](#8-基于parity搭建联盟链)
+    - [8.1. Parity钱包下载安装](#81-parity钱包下载安装)
+    - [8.2. 设置chain spec](#82-设置chain-spec)
+    - [8.3. 设置两个节点](#83-设置两个节点)
 
 <!-- /TOC -->
 
@@ -1773,3 +1777,152 @@ admin.addPeer("enode://a1e18dd40fbce856d84b8c6872d4158ab152812a081d1608643fd8a9c
     }
 }]
 ```
+
+# 8. 基于Parity搭建联盟链
++ 什么情况可以建立自己测试用的PoA chain？
+  - 公司内网或无对外网络，无法同步区块
+  - 降低测试是等待区块时间
+  - 不想碰到testrpc各种雷
++ PoA chain特点有
+  - 依靠预设好的Authority nodes，负责产生block。
+  - 可依照需求设定Authority node数量
+  - 可指定产生block时间，例如收到交易的5秒产生block。
+  - 一般的以太坊节点亦可以连接到poa chain，正常发起transactions，contracts等。
+## 8.1. Parity钱包下载安装
+https://www.parity.io/ 下载安装地址
+- 安装ubuntu的parity
+下载parity_1.11.8_ubuntu_amd64.deb
+```
+dpkg -i parity_1.11.8_ubuntu_amd64.deb
+```
+## 8.2. 设置chain spec
+PoA chain 需要设置一个创世区块
+```
+{
+  "name": "DemoPoA",
+  "engine": {
+    "authorityRound": {
+      "params": {
+        "stepDuration": "5",
+        "validators": {
+          "list": [
+
+          ]
+        }
+      }
+    }
+  },
+  "params": {
+    "gasLimitBoundDivisor": "0x0400",
+    "maximumExtraDataSize": "0x20",
+    "minGasLimit": "0x1388",
+    "networkID": "0x2323"
+  },
+  "genesis": {
+    "seal": {
+      "authorityRound": {
+        "step": "0x0",
+        "signature": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    "difficulty": "0x20000",
+    "gasLimit": "0x5B8D80"
+  },
+  "accounts": {
+    "0x0000000000000000000000000000000000000001": {
+      "balance": "1",
+      "builtin": {
+        "name": "ecrecover",
+        "pricing": {
+          "linear": {
+            "base": 3000,
+            "word": 0
+          }
+        }
+      }
+    },
+    "0x0000000000000000000000000000000000000002": {
+      "balance": "1",
+      "builtin": {
+        "name": "sha256",
+        "pricing": {
+          "linear": {
+            "base": 60,
+            "word": 12
+          }
+        }
+      }
+    },
+    "0x0000000000000000000000000000000000000003": {
+      "balance": "1",
+      "builtin": {
+        "name": "ripemd160",
+        "pricing": {
+          "linear": {
+            "base": 600,
+            "word": 120
+          }
+        }
+      }
+    },
+    "0x0000000000000000000000000000000000000004": {
+      "balance": "1",
+      "builtin": {
+        "name": "identity",
+        "pricing": {
+          "linear": {
+            "base": 15,
+            "word": 3
+          }
+        }
+      }
+    }
+  }
+}
+```
+stepDuration 设定成5秒产生一个区块。
+validators 设定Authority的地方，目前先空著，后面创建account之后再回来填入。
+将上面的文件保存到桌面的一个文件中，保存为demo-spec.json。
+## 8.3. 设置两个节点
+在我们这篇文章中，我们在同一台电脑设置两个节点，跟我们讲解以太坊私网建立 (2) – 同一台电脑／不同电脑运行多个节点时，如果在同一台电脑设置两个节点，需要将rpcport和port设置为不同的值，否则就会发生冲突，POA chain中也是一样，需要将一些参数设置为不同的值。
+
+-d：指定存储资料与账号的目录
+--port：指定Parity的network port，可用来让其他node连接
+--jsonrpc-port：这是JSON RPC port，使用web3.js时会需要
+ui-port：Parity提供的Web-based UI port
+启动节点
+```
+parity --chain demo-spec.json -d parity0 --port 30300  --ui-port 8180  --jsonrpc-port 8540 --jsonrpc-apis web3,eth,net,personal,parity,parity_set,traces,rpc,parity_accounts
+```
+除了打一长串的指令外，Parity也提供更为简洁的config档案设定方式，使用 --config 即可引用配置文件。
+```
+node0 使用如下配置文件 node0.toml：
+[parity]
+chain = "demo-spec.json"
+base_path = "parity0"
+[network]
+port = 30300
+[rpc]
+port = 8540
+apis = ["web3", "eth", "net", "personal", "parity", "parity_set", "traces", "rpc", "parity_accounts"]
+[ui]
+port = 8180
+[websockets]
+port = 8456
+```
+node1 使用如下配置文件 node1.toml：
+```
+[parity]
+chain = "demo-spec.json"
+base_path = "parity1"
+[network]
+port = 30301
+[rpc]
+port = 8541
+apis = ["web3", "eth", "net", "personal", "parity", "parity_set", "traces", "rpc", "parity_accounts"]
+[ui]
+port = 8181
+[websockets]
+port = 8457
+```
+后因parity浏览器已经从节点中剥离，无法进行用户生成，所以不再继续，详情参考见http://www.8btc.com/ethereum-parity 。
