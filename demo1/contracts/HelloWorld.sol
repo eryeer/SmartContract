@@ -4,11 +4,11 @@ contract HelloWorld {
     return "HelloWorld";
   }
 
-  function test1() public returns (string) {
+  function test1() pure public returns (string) {
     return "World Hello";
   }
 
-  function echo(string s) public returns (string){
+  function echo(string s) pure public returns (string){
     return s;
   }
 }

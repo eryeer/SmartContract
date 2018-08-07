@@ -75,6 +75,10 @@
     - [8.1. Parity钱包下载安装](#81-parity钱包下载安装)
     - [8.2. 设置chain spec](#82-设置chain-spec)
     - [8.3. 设置两个节点](#83-设置两个节点)
+- [9. 玩转truffle、web3js](#9-玩转truffleweb3js)
+    - [9.1. web3.js api的使用](#91-web3js-api的使用)
+    - [9.2. 编写truffle测试代码](#92-编写truffle测试代码)
+    - [9.3. truffle unbox 项目介绍](#93-truffle-unbox-项目介绍)
 
 <!-- /TOC -->
 
@@ -1883,7 +1887,9 @@ PoA chain 需要设置一个创世区块
 stepDuration 设定成5秒产生一个区块。
 validators 设定Authority的地方，目前先空著，后面创建account之后再回来填入。
 将上面的文件保存到桌面的一个文件中，保存为demo-spec.json。
+
 ## 8.3. 设置两个节点
+
 在我们这篇文章中，我们在同一台电脑设置两个节点，跟我们讲解以太坊私网建立 (2) – 同一台电脑／不同电脑运行多个节点时，如果在同一台电脑设置两个节点，需要将rpcport和port设置为不同的值，否则就会发生冲突，POA chain中也是一样，需要将一些参数设置为不同的值。
 
 -d：指定存储资料与账号的目录
@@ -1910,8 +1916,10 @@ port = 8180
 [websockets]
 port = 8456
 ```
+
 node1 使用如下配置文件 node1.toml：
-```
+
+```conf
 [parity]
 chain = "demo-spec.json"
 base_path = "parity1"
@@ -1925,4 +1933,71 @@ port = 8181
 [websockets]
 port = 8457
 ```
+
 后因parity浏览器已经从节点中剥离，无法进行用户生成，所以不再继续，详情参考见http://www.8btc.com/ethereum-parity 。
+
+# 9. 玩转truffle、web3js
+
+**truffle的安装详见第6章**
+
+## 9.1. web3.js api的使用
+
+- API 文档
+
+http://web3js.readthedocs.io/en/1.0/index.html
+https://ethereumbuilders.gitbooks.io
+
+## 9.2. 编写truffle测试代码
+
+在test目录下建立TestMath.sol
+
+```solidity
+pragma solidity ^0.4.4;
+import "truffle/Assert.sol";
+import "truffle/DeployedAddresses.sol";
+import "../contracts/Math.sol";
+
+contract TestMath {
+  function testAMulBisRight() {
+    Math meta = Math(DeployedAddresses.Math());
+    Assert.equal(meta.mulAtoB(3,4),12, "3*4 should be 12");
+  }
+}
+```
+
+在写好之后在truffle开发工具中输入test
+
+```
+truffle(develop)> test
+Using network 'develop'.
+
+Compiling .\contracts\Math.sol...
+Compiling .\test\TestMath.sol...
+Compiling truffle/Assert.sol...
+Compiling truffle/DeployedAddresses.sol...
+
+/C/Users/ERYEER/Desktop/SmartContract/demo1/test/TestMath.sol:10:40: DeclarationError: Undeclared identifier.
+    Assert.equal(meta.mulAtoB(3,4),12, expected, "3*4 should be 12");
+                                       ^------^
+Compilation failed. See above.
+truffle(develop)> test
+Using network 'develop'.
+
+Compiling .\contracts\Math.sol...
+Compiling .\test\TestMath.sol...
+Compiling truffle/Assert.sol...
+Compiling truffle/DeployedAddresses.sol...
+
+Compilation warnings encountered:
+
+/C/Users/ERYEER/Desktop/SmartContract/demo1/test/TestMath.sol:7:3: Warning: No visibility specified. Defaulting to "public".
+  function testAMulBisRight() {
+  ^ (Relevant source part starts here and spans across multiple lines).
+
+  TestMath
+    √ testAMulBisRight (77ms)
+
+  1 passing (667ms)
+```
+
+## 9.3. truffle unbox 项目介绍
